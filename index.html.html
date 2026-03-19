@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EduPay — Tuition Fee Manager</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1A73E8;--blue-l:#E8F0FE;--blue-mid:#4285F4;
+  --green:#1E8E3E;--green-l:#E6F4EA;
+  --amber:#E37400;--amber-l:#FEF3E2;
+  --red:#D93025;--red-l:#FCE8E6;
+  --g50:#F8F9FA;--g100:#F1F3F4;--g200:#E8EAED;
+  --g400:#BDC1C6;--g500:#9AA0A6;--g600:#80868B;--g700:#5F6368;
+  --g800:#3C4043;--g900:#202124;--white:#FFF;
+  --shadow-xs:0 1px 2px rgba(60,64,67,.12);
+  --shadow-sm:0 1px 4px rgba(60,64,67,.15),0 1px 2px rgba(60,64,67,.08);
+  --shadow-md:0 2px 8px rgba(60,64,67,.18),0 1px 3px rgba(60,64,67,.1);
+  --shadow-lg:0 8px 24px rgba(60,64,67,.2),0 2px 8px rgba(60,64,67,.12);
+  --r8:8px;--r12:12px;--r16:16px;--r99:100px;
+  --font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
+  --topbar-h:64px;--mnav-h:60px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--g50);color:var(--g900);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* LOADING */
+#appLoading{position:fixed;inset:0;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
+#appLoading .spin{width:48px;height:48px;border:4px solid #E8F0FE;border-top-color:#1A73E8;border-radius:50%;animation:spin .8s linear infinite}
+#appLoading p{font-size:14px;color:#9AA0A6;font-family:'Outfit',sans-serif}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* LOCK */
+#lockScreen{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center}
+#lockScreen.show{display:flex}
+.lock-bg{position:absolute;inset:0;background:linear-gradient(135deg,#1A73E8 0%,#0D47A1 40%,#1E3A5F 100%)}
+.lock-bg::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 20%,rgba(66,133,244,.35) 0%,transparent 60%),radial-gradient(ellipse at 20% 80%,rgba(52,168,83,.2) 0%,transparent 50%)}
+.lock-card{position:relative;z-index:1;background:rgba(255,255,255,.97);border-radius:20px;padding:36px 32px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.3);margin:16px;animation:lockIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes lockIn{from{opacity:0;transform:scale(.88) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.lock-logo{text-align:center;margin-bottom:24px}
+.lock-icon{width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#4285F4,#1A73E8);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(26,115,232,.4)}
+.lock-title{font-size:22px;font-weight:700;color:#202124;letter-spacing:-.4px}
+.lock-sub{font-size:12px;color:#80868B;margin-top:4px}
+.lock-section-label{font-size:11px;font-weight:700;color:#5F6368;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.lock-users{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.user-btn{padding:12px 8px;border-radius:12px;border:2px solid #E8EAED;background:#F8F9FA;cursor:pointer;text-align:center;transition:all .15s;font-family:'Outfit',sans-serif}
+.user-btn:hover{border-color:#1A73E8;background:#E8F0FE}
+.user-btn.selected{border-color:#1A73E8;background:#E8F0FE;box-shadow:0 0 0 3px rgba(26,115,232,.15)}
+.ub-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin:0 auto 6px}
+.ub-name{font-size:12px;font-weight:600;color:#202124}
+.lock-sep{text-align:center;font-size:11px;color:#BDC1C6;margin:8px 0 14px;display:flex;align-items:center;gap:8px}
+.lock-sep::before,.lock-sep::after{content:'';flex:1;height:1px;background:#E8EAED}
+.lock-input-wrap{position:relative;margin-bottom:8px}
+.lock-input-wrap input{width:100%;height:46px;padding:0 46px 0 14px;border:2px solid #E8EAED;border-radius:12px;font-size:15px;font-family:'Outfit',sans-serif;color:#202124;background:#F8F9FA;outline:none;transition:border-color .15s,box-shadow .15s;letter-spacing:2px}
+.lock-input-wrap input:focus{border-color:#1A73E8;box-shadow:0 0 0 3px rgba(26,115,232,.15);background:#fff}
+.lock-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:#9AA0A6;padding:4px}
+.lock-error{font-size:12px;color:#D93025;font-weight:500;min-height:18px;text-align:center;margin-bottom:6px}
+.lock-btn{width:100%;height:46px;border:none;border-radius:12px;background:linear-gradient(135deg,#4285F4,#1A73E8);color:#fff;font-size:14px;font-weight:600;font-family:'Outfit',sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(26,115,232,.4);transition:transform .15s,box-shadow .15s}
+.lock-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,115,232,.5)}
+.lock-footer{text-align:center;font-size:11px;color:#BDC1C6;margin-top:14px}
+body.locked .topbar,body.locked .mobile-nav,body.locked .main{visibility:hidden}
+
+/* SYNC BANNER */
+.sync-banner{position:fixed;top:var(--topbar-h);left:0;right:0;z-index:100;background:#E6F4EA;border-bottom:1px solid #A8D5B5;padding:7px 20px;font-size:12px;font-weight:500;color:var(--green);text-align:center;transform:translateY(-100%);transition:transform .3s}
+.sync-banner.show{transform:translateY(0)}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:200;height:var(--topbar-h);background:var(--white);border-bottom:1px solid var(--g200);display:flex;align-items:center;padding:0 24px;gap:16px;box-shadow:var(--shadow-xs)}
+.topbar-left{flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#4285F4,#1A73E8);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 8px rgba(66,133,244,.35)}
+.logo-name{font-size:19px;font-weight:700;color:var(--g900);letter-spacing:-0.4px;display:block;line-height:1.1}
+.logo-tag{font-size:10px;font-weight:500;color:var(--g500);text-transform:uppercase;letter-spacing:.08em;display:block}
+.topbar-nav{display:flex;align-items:center;gap:4px;flex:1;justify-content:center}
+.nav-btn{height:36px;padding:0 14px;border-radius:var(--r8);border:none;background:transparent;font-size:13px;font-weight:500;font-family:var(--font);color:var(--g600);cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s,color .15s}
+.nav-btn:hover{background:var(--g100);color:var(--g800)}
+.nav-btn.active{background:var(--blue-l);color:var(--blue);font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.icon-btn{width:36px;height:36px;border-radius:var(--r8);border:1.5px solid var(--g200);background:var(--white);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--g700)}
+.icon-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.avatar-wrap{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 8px;border-radius:var(--r8);transition:background .15s}
+.avatar-wrap:hover{background:var(--g100)}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.avatar-name{font-size:13px;font-weight:600;color:var(--g700)}
+
+/* MOBILE NAV */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;height:var(--mnav-h);background:var(--white);border-top:1px solid var(--g200);box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+.mnav-btn{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:18px;font-family:var(--font);color:var(--g500);transition:color .15s}
+.mnav-btn span{font-size:10px;font-weight:500}
+.mnav-btn.active{color:var(--blue)}
+
+/* MAIN */
+.main{max-width:1140px;margin:0 auto;padding:28px 24px 80px}
+.view{display:none;animation:fadeIn .2s ease}
+.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.view-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
+.view-title{font-size:26px;font-weight:700;letter-spacing:-0.5px;color:var(--g900)}
+.view-sub{font-size:13px;color:var(--g600);margin-top:3px}
+.header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.year-select{height:36px;padding:0 12px;border:1.5px solid var(--g200);border-radius:var(--r8);font-size:13px;font-weight:500;font-family:var(--font);background:var(--white);color:var(--g800);cursor:pointer;outline:none;transition:border-color .15s}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--white);border-radius:var(--r12);padding:20px;border:1px solid var(--g200);box-shadow:var(--shadow-sm);display:flex;align-items:flex-start;gap:14px;transition:box-shadow .2s,transform .2s;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
+.stat-card.accent-blue::before{background:var(--blue)}
+.stat-card.accent-green::before{background:var(--green)}
+.stat-card.accent-amber::before{background:var(--amber)}
+.stat-card.accent-red::before{background:var(--red)}
+.stat-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.stat-icon-wrap{width:44px;height:44px;flex-shrink:0;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.stat-icon-wrap.blue{background:var(--blue-l)}
+.stat-icon-wrap.green{background:var(--green-l)}
+.stat-icon-wrap.amber{background:var(--amber-l)}
+.stat-icon-wrap.red{background:var(--red-l)}
+.stat-info{flex:1;min-width:0}
+.stat-label{font-size:11px;font-weight:600;color:var(--g500);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:700;font-family:var(--mono);letter-spacing:-1px;color:var(--g900)}
+.stat-val.green{color:var(--green)}
+.stat-val.amber{color:var(--amber)}
+.stat-val.red{color:var(--red)}
+.stat-sub{font-size:12px;color:var(--g500);margin-top:4px}
+.progress-wrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+.prog-bg{flex:1;height:5px;border-radius:3px;background:var(--g200);overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#34A853,#1E8E3E);transition:width .5s ease}
+.prog-pct{font-size:11px;font-weight:600;color:var(--green);white-space:nowrap}
+
+/* SECTION CARD */
+.section-card{background:var(--white);border-radius:var(--r12);border:1px solid var(--g200);box-shadow:var(--shadow-sm);margin-bottom:20px;overflow:hidden}
+.section-head{padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.section-title{font-size:14px;font-weight:600;color:var(--g900)}
+.legend-row{display:flex;align-items:center;gap:12px}
+.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.legend-dot.green{background:var(--green)}
+.legend-dot.amber{background:var(--amber)}
+.legend-dot.red{background:var(--red)}
+.legend-label{font-size:11px;color:var(--g600)}
+.text-btn{background:none;border:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--blue);font-family:var(--font);padding:0}
+.text-btn:hover{text-decoration:underline}
+
+/* MONTH HEATMAP */
+.month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px}
+.month-tile{border-radius:var(--r8);border:1.5px solid var(--g200);padding:14px 12px;cursor:pointer;transition:all .15s}
+.month-tile:hover{border-color:var(--blue);box-shadow:var(--shadow-sm)}
+.month-tile.has-paid{border-color:var(--green);background:var(--green-l)}
+.month-tile.has-pending{border-color:var(--amber);background:var(--amber-l)}
+.month-tile.has-overdue{border-color:var(--red);background:var(--red-l)}
+.month-tile.empty-month{opacity:.5}
+.month-name{font-size:12px;font-weight:600;color:var(--g700);margin-bottom:8px}
+.month-amount{font-size:16px;font-weight:700;font-family:var(--mono);color:var(--g900)}
+.month-count{font-size:11px;color:var(--g500);margin-top:3px}
+.month-dots{display:flex;gap:3px;margin-top:8px;flex-wrap:wrap}
+.mdot{width:6px;height:6px;border-radius:50%}
+.mdot.paid{background:var(--green)}
+.mdot.pending{background:var(--amber)}
+.mdot.overdue{background:var(--red)}
+
+/* RECENT */
+.recent-item{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--g100);transition:background .12s}
+.recent-item:last-child{border-bottom:none}
+.recent-item:hover{background:var(--g50)}
+.recent-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.recent-info{flex:1;min-width:0}
+.recent-name{font-size:13px;font-weight:600;color:var(--g900)}
+.recent-meta{font-size:11px;color:var(--g500);margin-top:2px}
+.recent-right{text-align:right;flex-shrink:0}
+.recent-amt{font-size:14px;font-weight:600;font-family:var(--mono);color:var(--g900)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--r99);font-size:11px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;display:inline-block}
+.badge.paid{background:var(--green-l);color:var(--green)}
+.badge.paid::before{background:var(--green)}
+.badge.pending{background:var(--amber-l);color:var(--amber)}
+.badge.pending::before{background:var(--amber)}
+.badge.overdue{background:var(--red-l);color:var(--red)}
+.badge.overdue::before{background:var(--red)}
+.mode-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--r99);font-size:10px;font-weight:600;white-space:nowrap}
+.mode-badge.cash{background:#FEF9E7;color:#B7770D;border:1px solid #F9E28D}
+.mode-badge.online{background:#EBF5FB;color:#1A5276;border:1px solid #AED6F1}
+.mode-badge.banking{background:#EAFAF1;color:#1E8449;border:1px solid #A9DFBF}
+
+/* SEARCH */
+.search-bar-wrap{margin-bottom:20px}
+.search-bar{width:100%;max-width:360px;height:38px;padding:0 14px 0 38px;border:1.5px solid var(--g200);border-radius:var(--r99);font-size:13px;font-family:var(--font);outline:none;background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239AA0A6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 13px center;color:var(--g900);transition:border-color .15s}
+.search-bar:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.1)}
+.search-bar::placeholder{color:var(--g400)}
+
+/* STUDENT GRID */
+.student-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.student-card{background:var(--white);border-radius:var(--r12);border:1px solid var(--g200);box-shadow:var(--shadow-sm);padding:20px;transition:box-shadow .2s,transform .2s}
+.student-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.sc-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sc-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+.sc-name{font-size:15px;font-weight:600;color:var(--g900)}
+.sc-subject{font-size:12px;color:var(--g500);margin-top:2px}
+.sc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.sc-stat{text-align:center}
+.sc-stat-val{font-size:14px;font-weight:700;font-family:var(--mono);color:var(--g900)}
+.sc-stat-val.green{color:var(--green)}
+.sc-stat-val.amber{color:var(--amber)}
+.sc-stat-label{font-size:10px;color:var(--g500);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.sc-actions{display:flex;gap:8px}
+.sc-btn{flex:1;height:32px;border-radius:var(--r8);border:1.5px solid var(--g200);background:var(--white);font-size:12px;font-weight:500;font-family:var(--font);color:var(--g700);cursor:pointer;transition:all .15s}
+.sc-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.sc-btn.danger:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
+.sc-phone{font-size:11px;color:var(--g500);margin-bottom:10px}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar-select{height:36px;padding:0 10px;border:1.5px solid var(--g200);border-radius:var(--r8);font-size:13px;font-family:var(--font);font-weight:500;background:var(--white);color:var(--g800);outline:none;cursor:pointer;transition:border-color .15s}
+.toolbar-select:focus{border-color:var(--blue)}
+
+/* TABLE */
+.table-card{background:var(--white);border-radius:var(--r12);border:1px solid var(--g200);box-shadow:var(--shadow-sm);overflow:hidden}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:11px 16px;font-size:11px;font-weight:600;color:var(--g600);text-transform:uppercase;letter-spacing:.06em;text-align:left;background:var(--g50);border-bottom:1px solid var(--g200);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--g100);transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--g50)}
+td{padding:12px 16px;font-size:13px;color:var(--g800);vertical-align:middle}
+.td-student{display:flex;align-items:center;gap:9px}
+.td-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.td-name{font-weight:600;color:var(--g900);font-size:13px}
+.td-sub{font-size:11px;color:var(--g500);margin-top:1px}
+.td-amount{font-family:var(--mono);font-weight:600;font-size:13px;color:var(--g900)}
+.td-actions{display:flex;gap:5px}
+.tbl-btn{height:28px;padding:0 10px;border-radius:var(--r8);border:1.5px solid var(--g200);background:var(--white);font-size:12px;font-weight:500;font-family:var(--font);color:var(--g700);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tbl-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.tbl-btn.danger:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
+.tbl-btn.success:hover{border-color:var(--green);color:var(--green);background:var(--green-l)}
+
+/* REPORTS */
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.month-report-row{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--g100)}
+.month-report-row:last-child{border-bottom:none}
+.mrr-name{font-size:13px;font-weight:500;color:var(--g800);width:90px;flex-shrink:0}
+.mrr-bar-wrap{flex:1}
+.mrr-bar-bg{height:6px;border-radius:3px;background:var(--g200);overflow:hidden}
+.mrr-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue-mid),var(--blue));transition:width .4s ease}
+.mrr-amt{font-size:13px;font-weight:600;font-family:var(--mono);color:var(--g900);width:80px;text-align:right;flex-shrink:0}
+.mrr-pct{font-size:11px;color:var(--g500);width:36px;text-align:right;flex-shrink:0}
+.sr-row{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--g100)}
+.sr-row:last-child{border-bottom:none}
+.sr-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.sr-name{flex:1;font-size:13px;font-weight:500;color:var(--g800)}
+.sr-paid{font-size:13px;font-weight:600;font-family:var(--mono);color:var(--green)}
+.sr-total{font-size:12px;color:var(--g500)}
+.yr-row{display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--g100)}
+.yr-row:last-child{border-bottom:none}
+.yr-year{font-size:18px;font-weight:700;color:var(--g800);font-family:var(--mono);width:60px;flex-shrink:0}
+.yr-stats{display:flex;gap:24px;flex-wrap:wrap;flex:1}
+.yr-stat{text-align:center}
+.yr-val{font-size:16px;font-weight:700;font-family:var(--mono);color:var(--g900)}
+.yr-val.green{color:var(--green)}
+.yr-val.amber{color:var(--amber)}
+.yr-lbl{font-size:10px;color:var(--g500);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.yr-prog-wrap{width:120px;flex-shrink:0}
+.mode-report-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--g100)}
+.mode-report-row:last-child{border-bottom:none}
+.mode-icon{font-size:24px;width:36px;text-align:center;flex-shrink:0}
+.mode-info{flex:1}
+.mode-name{font-size:13px;font-weight:600;color:var(--g900)}
+.mode-count{font-size:11px;color:var(--g500);margin-top:2px}
+.mode-bar-bg{height:7px;border-radius:4px;background:var(--g200);overflow:hidden;margin-top:7px}
+.mode-bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
+.mode-amt{font-size:15px;font-weight:700;font-family:var(--mono);color:var(--g900);text-align:right;flex-shrink:0;min-width:80px}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:64px 24px}
+.empty-icon{font-size:48px;margin-bottom:14px;display:block}
+.empty-state h3{font-size:16px;font-weight:600;color:var(--g800);margin-bottom:6px}
+.empty-state p{font-size:13px;color:var(--g500)}
+
+/* BUTTONS */
+.primary-btn{height:38px;padding:0 18px;border:none;border-radius:var(--r8);background:linear-gradient(135deg,#4285F4,#1A73E8);color:#fff;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;box-shadow:0 2px 8px rgba(26,115,232,.3);transition:transform .15s,box-shadow .15s;white-space:nowrap}
+.primary-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,115,232,.4)}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(32,33,36,.5);backdrop-filter:blur(2px);align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:var(--r16);box-shadow:var(--shadow-lg);width:100%;max-width:460px;animation:modalIn .2s cubic-bezier(.34,1.56,.64,1);max-height:90vh;overflow-y:auto}
+@keyframes modalIn{from{opacity:0;transform:scale(.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--g100)}
+.modal-header h3{font-size:16px;font-weight:700;color:var(--g900)}
+.modal-close{width:28px;height:28px;border-radius:var(--r8);border:none;background:var(--g100);color:var(--g600);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-close:hover{background:var(--g200);color:var(--g900)}
+.modal-body{padding:20px;display:flex;flex-direction:column;gap:14px}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--g100)}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;color:var(--g600);text-transform:uppercase;letter-spacing:.06em}
+.field input,.field select{height:40px;padding:0 12px;border:1.5px solid var(--g200);border-radius:var(--r8);font-size:14px;font-family:var(--font);color:var(--g900);background:var(--white);outline:none;transition:border-color .15s,box-shadow .15s}
+.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.1)}
+.field input::placeholder{color:var(--g400)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cancel-btn{height:38px;padding:0 16px;border-radius:var(--r8);border:1.5px solid var(--g200);background:var(--white);font-size:13px;font-weight:500;font-family:var(--font);color:var(--g700);cursor:pointer;transition:all .15s}
+.cancel-btn:hover{border-color:var(--g300);background:var(--g50)}
+.save-btn{height:38px;padding:0 20px;border:none;border-radius:var(--r8);background:linear-gradient(135deg,#4285F4,#1A73E8);color:#fff;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;box-shadow:0 2px 8px rgba(26,115,232,.3);transition:transform .15s,box-shadow .15s}
+.save-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,115,232,.4)}
+
+/* PAYMENT MODE PICKER */
+.mode-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mode-opt{padding:12px 8px;border-radius:var(--r8);border:2px solid var(--g200);background:var(--g50);cursor:pointer;text-align:center;transition:all .15s;font-family:var(--font)}
+.mode-opt:hover{border-color:var(--blue);background:var(--blue-l)}
+.mode-opt.sel-cash{border-color:#B7770D;background:#FEF9E7;box-shadow:0 0 0 3px rgba(183,119,13,.1)}
+.mode-opt.sel-online{border-color:#1A5276;background:#EBF5FB;box-shadow:0 0 0 3px rgba(26,82,118,.1)}
+.mode-opt.sel-banking{border-color:#1E8449;background:#EAFAF1;box-shadow:0 0 0 3px rgba(30,132,73,.1)}
+.mo-icon{font-size:22px;display:block;margin-bottom:4px}
+.mo-label{font-size:12px;font-weight:600;color:var(--g700)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--g900);color:#fff;padding:10px 20px;border-radius:var(--r99);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:1000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* RESPONSIVE */
+@media(max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr)}.report-grid{grid-template-columns:1fr}.topbar-nav{display:none}.mobile-nav{display:flex}.main{padding-bottom:calc(var(--mnav-h) + 20px)}.month-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.stat-grid{grid-template-columns:1fr 1fr}.month-grid{grid-template-columns:repeat(2,1fr)}.avatar-name{display:none}.main{padding:20px 16px calc(var(--mnav-h) + 20px)}.topbar{padding:0 16px}.view-title{font-size:22px}.field-row{grid-template-columns:1fr}.modal{border-radius:var(--r12)}.yr-stats{gap:12px}.yr-row{flex-wrap:wrap}.yr-prog-wrap{width:100%}.lock-users{grid-template-columns:1fr 1fr}}
+@media(max-width:400px){.stat-grid{grid-template-columns:1fr}.month-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="appLoading">
+  <div class="spin"></div>
+  <p>Loading EduPay…</p>
+</div>
+
+<!-- SYNC BANNER -->
+<div class="sync-banner" id="syncBanner">✅ Changes saved successfully</div>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen">
+  <div class="lock-bg"></div>
+  <div class="lock-card">
+    <div class="lock-logo">
+      <div class="lock-icon">🎓</div>
+      <div class="lock-title">EduPay</div>
+      <div class="lock-sub">Tuition Fee Manager</div>
+    </div>
+    <div class="lock-section-label">Select your profile</div>
+    <div class="lock-users" id="lockUsers"></div>
+    <div class="lock-sep">Enter password</div>
+    <div class="lock-input-wrap">
+      <input id="lockInput" type="password" placeholder="Password…" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <button class="lock-eye" onclick="toggleEye()">👁</button>
+    </div>
+    <div class="lock-error" id="lockError"></div>
+    <button class="lock-btn" onclick="doLogin()">Unlock →</button>
+    <div class="lock-footer">🔒 Private access · EduPay</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <div class="logo-mark">🎓</div>
+      <div><span class="logo-name">EduPay</span><span class="logo-tag">Fee Manager</span></div>
+    </div>
+  </div>
+  <nav class="topbar-nav">
+    <button class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard',this)"><span>⊞</span> Dashboard</button>
+    <button class="nav-btn" data-view="students" onclick="switchView('students',this)"><span>👤</span> Students</button>
+    <button class="nav-btn" data-view="payments" onclick="switchView('payments',this)"><span>💳</span> Payments</button>
+    <button class="nav-btn" data-view="reports" onclick="switchView('reports',this)"><span>📊</span> Reports</button>
+  </nav>
+  <div class="topbar-right">
+    <button class="icon-btn" onclick="exportCSV()" title="Export CSV">⬇</button>
+    <div class="avatar-wrap" onclick="doLogout()" title="Switch user / logout">
+      <div class="avatar" id="topAvatar">?</div>
+      <span class="avatar-name" id="topName">—</span>
+    </div>
+  </div>
+</header>
+
+<!-- MOBILE NAV -->
+<nav class="mobile-nav">
+  <button class="mnav-btn active" data-view="dashboard" onclick="switchView('dashboard',this)">⊞<span>Home</span></button>
+  <button class="mnav-btn" data-view="students" onclick="switchView('students',this)">👤<span>Students</span></button>
+  <button class="mnav-btn" data-view="payments" onclick="switchView('payments',this)">💳<span>Pay</span></button>
+  <button class="mnav-btn" data-view="reports" onclick="switchView('reports',this)">📊<span>Reports</span></button>
+</nav>
+
+<main class="main">
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div class="view-header">
+      <div><h1 class="view-title">Dashboard</h1><p class="view-sub" id="dashDate"></p></div>
+      <div class="header-actions"><select class="year-select" id="dashYear" onchange="render()"></select></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card accent-blue"><div class="stat-icon-wrap blue">💰</div><div class="stat-info"><div class="stat-label">Total Fees (Year)</div><div class="stat-val" id="dTotal">₹0</div><div class="stat-sub" id="dStudents">0 students</div></div></div>
+      <div class="stat-card accent-green"><div class="stat-icon-wrap green">✅</div><div class="stat-info"><div class="stat-label">Collected</div><div class="stat-val green" id="dPaid">₹0</div><div class="progress-wrap"><div class="prog-bg"><div class="prog-fill" id="progFill" style="width:0%"></div></div><span class="prog-pct" id="progPct">0%</span></div></div></div>
+      <div class="stat-card accent-amber"><div class="stat-icon-wrap amber">⏳</div><div class="stat-info"><div class="stat-label">Pending</div><div class="stat-val amber" id="dPending">₹0</div><div class="stat-sub" id="dPendingC">0 entries</div></div></div>
+      <div class="stat-card accent-red"><div class="stat-icon-wrap red">🚨</div><div class="stat-info"><div class="stat-label">Overdue</div><div class="stat-val red" id="dOverdue">₹0</div><div class="stat-sub" id="dOverdueC">0 entries</div></div></div>
+    </div>
+    <div class="section-card">
+      <div class="section-head"><h2 class="section-title">Monthly Collection — <span id="heatYear"></span></h2><div class="legend-row"><span class="legend-dot green"></span><span class="legend-label">Paid</span><span class="legend-dot amber"></span><span class="legend-label">Pending</span><span class="legend-dot red"></span><span class="legend-label">Overdue</span></div></div>
+      <div class="month-grid" id="monthGrid"></div>
+    </div>
+    <div class="section-card">
+      <div class="section-head"><h2 class="section-title">Recent Activity</h2><button class="text-btn" onclick="switchView('payments',document.querySelector('[data-view=payments]'))">View all →</button></div>
+      <div id="recentList"></div>
+    </div>
+  </div>
+
+  <!-- STUDENTS -->
+  <div id="view-students" class="view">
+    <div class="view-header"><div><h1 class="view-title">Students</h1><p class="view-sub">Manage student profiles</p></div><button class="primary-btn" onclick="openStudentModal()">+ Add Student</button></div>
+    <div class="search-bar-wrap"><input class="search-bar" id="studentSearch" placeholder="Search students…" oninput="renderStudents()"/></div>
+    <div class="student-grid" id="studentGrid"></div>
+    <div class="empty-state" id="studentEmpty" style="display:none"><div class="empty-icon">👤</div><h3>No students yet</h3><p>Click "Add Student" to get started</p></div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div id="view-payments" class="view">
+    <div class="view-header"><div><h1 class="view-title">Payments</h1><p class="view-sub">All fee records</p></div><button class="primary-btn" onclick="openPaymentModal()">+ Add Payment</button></div>
+    <div class="toolbar">
+      <input class="search-bar" id="paySearch" placeholder="Search…" oninput="renderPayments()" style="max-width:200px"/>
+      <select class="toolbar-select" id="filterYear" onchange="renderPayments()"><option value="all">All Years</option></select>
+      <select class="toolbar-select" id="filterMonth" onchange="renderPayments()">
+        <option value="all">All Months</option>
+        <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option><option value="04">Apr</option>
+        <option value="05">May</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Aug</option>
+        <option value="09">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+      </select>
+      <select class="toolbar-select" id="filterStatus" onchange="renderPayments()">
+        <option value="all">All Status</option><option value="paid">Paid</option><option value="pending">Pending</option><option value="overdue">Overdue</option>
+      </select>
+      <select class="toolbar-select" id="filterMode" onchange="renderPayments()">
+        <option value="all">All Modes</option><option value="cash">💵 Cash</option><option value="online">📱 Online</option><option value="banking">🏦 Banking</option>
+      </select>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table><thead><tr><th>Student</th><th>Month / Year</th><th>Amount</th><th>Status</th><th>Mode</th><th>Added By</th><th>Note</th><th>Actions</th></tr></thead>
+        <tbody id="payBody"></tbody></table>
+      </div>
+      <div class="empty-state" id="payEmpty" style="display:none"><div class="empty-icon">💳</div><h3>No payments found</h3><p>Add payments or adjust your filters</p></div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div id="view-reports" class="view">
+    <div class="view-header"><div><h1 class="view-title">Reports</h1><p class="view-sub">Year-wise, month-wise & payment mode breakdown</p></div><select class="year-select" id="reportYear" onchange="renderReports()"></select></div>
+    <div class="report-grid">
+      <div class="section-card"><div class="section-head"><h2 class="section-title">Month-wise Collection</h2></div><div id="monthReport"></div></div>
+      <div class="section-card"><div class="section-head"><h2 class="section-title">Student-wise Summary</h2></div><div id="studentReport"></div></div>
+    </div>
+    <div class="section-card" style="margin-top:20px"><div class="section-head"><h2 class="section-title">💳 Payment Mode Breakdown</h2></div><div id="modeReport"></div></div>
+    <div class="section-card" style="margin-top:20px"><div class="section-head"><h2 class="section-title">Year-wise Overview</h2></div><div id="yearReport"></div></div>
+  </div>
+</main>
+
+<!-- STUDENT MODAL -->
+<div class="modal-overlay" id="studentModal" onclick="closeIfOverlay(event,'studentModal')">
+  <div class="modal">
+    <div class="modal-header"><h3 id="studentModalTitle">Add Student</h3><button class="modal-close" onclick="closeModal('studentModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="sId"/>
+      <div class="field"><label>Full Name *</label><input id="sName" type="text" placeholder="e.g. Aanya Sharma"/></div>
+      <div class="field-row">
+        <div class="field"><label>Subject / Class</label><input id="sSubject" type="text" placeholder="Maths, Std 10"/></div>
+        <div class="field"><label>Monthly Fee (₹)</label><input id="sFee" type="number" placeholder="2500" min="0"/></div>
+      </div>
+      <div class="field"><label>Phone</label><input id="sPhone" type="tel" placeholder="9876543210"/></div>
+      <div class="field"><label>Notes</label><input id="sNote" type="text" placeholder="Any details…"/></div>
+    </div>
+    <div class="modal-footer"><button class="cancel-btn" onclick="closeModal('studentModal')">Cancel</button><button class="save-btn" onclick="saveStudent()">Save Student</button></div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="paymentModal" onclick="closeIfOverlay(event,'paymentModal')">
+  <div class="modal">
+    <div class="modal-header"><h3 id="paymentModalTitle">Add Payment</h3><button class="modal-close" onclick="closeModal('paymentModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pId"/>
+      <div class="field"><label>Student *</label><select id="pStudent"><option value="">Select student…</option></select></div>
+      <div class="field-row">
+        <div class="field"><label>Year *</label><select id="pYear"></select></div>
+        <div class="field"><label>Month *</label>
+          <select id="pMonth">
+            <option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option>
+            <option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option>
+            <option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Amount (₹) *</label><input id="pAmount" type="number" placeholder="2500" min="1"/></div>
+        <div class="field"><label>Status</label><select id="pStatus"><option value="pending">Pending</option><option value="paid">Paid</option><option value="overdue">Overdue</option></select></div>
+      </div>
+      <div class="field">
+        <label>Payment Mode *</label>
+        <div class="mode-picker">
+          <button type="button" class="mode-opt" id="mode-cash" onclick="selectMode('cash')"><span class="mo-icon">💵</span><span class="mo-label">Cash</span></button>
+          <button type="button" class="mode-opt" id="mode-online" onclick="selectMode('online')"><span class="mo-icon">📱</span><span class="mo-label">Online</span></button>
+          <button type="button" class="mode-opt" id="mode-banking" onclick="selectMode('banking')"><span class="mo-icon">🏦</span><span class="mo-label">Banking</span></button>
+        </div>
+      </div>
+      <div class="field"><label>Date Paid</label><input id="pDate" type="date"/></div>
+      <div class="field"><label>Note</label><input id="pNote" type="text" placeholder="Partial, discount, advance…"/></div>
+    </div>
+    <div class="modal-footer"><button class="cancel-btn" onclick="closeModal('paymentModal')">Cancel</button><button class="save-btn" onclick="savePayment()">Save Payment</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  ⚙️  USER CONFIG — change names & passwords here
+// ══════════════════════════════════════════════
+const USERS = [
+  { id:'u1', name:'Karan',  color:'#4285F4', emoji:'👨', password:'Karan4235' },
+  { id:'u2', name:'Wife',   color:'#E91E8C', emoji:'👩', password:'Wife1234'  },
+  { id:'u3', name:'User 3', color:'#34A853', emoji:'🧑', password:'User1234'  },
+  { id:'u4', name:'User 4', color:'#FF6D00', emoji:'🧒', password:'User4321'  },
+];
+// ══════════════════════════════════════════════
+
+const MONTHS       = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const AVATAR_COLORS= ['#4285F4','#34A853','#E37400','#EA4335','#9334E6','#00ACC1','#F4511E','#0F9D58','#5C35B1','#E91E8C'];
+const STORAGE_KEY  = 'edupay_data_v2';
+
+let students    = [];
+let payments    = [];
+let currentUser = null;
+let selMode     = 'cash';
+
+// ── STORAGE ──
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({students,payments,updatedAt:Date.now()}));
+  flashSyncBanner();
+}
+function load(){
+  try{ const d=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); students=d.students||[]; payments=d.payments||[]; }
+  catch(e){ students=[]; payments=[]; }
+}
+function flashSyncBanner(){
+  const b=document.getElementById('syncBanner');
+  b.classList.add('show'); clearTimeout(b._t);
+  b._t=setTimeout(()=>b.classList.remove('show'),2200);
+}
+
+// ── UTILS ──
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function avatarColor(n){ let h=0; for(let c of(n||'?')) h=(h*31+c.charCodeAt(0))%AVATAR_COLORS.length; return AVATAR_COLORS[Math.abs(h)]; }
+function initials(n){ return(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?'; }
+function fmt(n){ return '₹'+Number(n||0).toLocaleString('en-IN'); }
+function fmtMY(y,m){ return m?MONTHS_SHORT[parseInt(m)-1]+' '+y:y||'—'; }
+function cap(s){ return s?s[0].toUpperCase()+s.slice(1):''; }
+function getYears(){ const s=new Set(payments.map(p=>p.year)),c=new Date().getFullYear(); s.add(String(c));s.add(String(c-1));s.add(String(c+1)); return[...s].sort((a,b)=>b-a); }
+function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2800); }
+function closeIfOverlay(e,id){ if(e.target===document.getElementById(id)) closeModal(id); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function modeInfo(m){ return m==='cash'?{icon:'💵',label:'Cash',cls:'cash'}:m==='online'?{icon:'📱',label:'Online',cls:'online'}:m==='banking'?{icon:'🏦',label:'Banking',cls:'banking'}:{icon:'—',label:'—',cls:''}; }
+
+// ── AUTH ──
+function buildLockUsers(){
+  document.getElementById('lockUsers').innerHTML=USERS.map(u=>`
+    <button class="user-btn" id="ubtn-${u.id}" onclick="pickUser('${u.id}')">
+      <div class="ub-avatar" style="background:${u.color}">${u.emoji}</div>
+      <div class="ub-name">${u.name}</div>
+    </button>`).join('');
+}
+function pickUser(uid){
+  document.querySelectorAll('.user-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('ubtn-'+uid).classList.add('selected');
+  currentUser=USERS.find(u=>u.id===uid);
+  document.getElementById('lockInput').focus();
+}
+function toggleEye(){ const i=document.getElementById('lockInput'); i.type=i.type==='password'?'text':'password'; }
+function doLogin(){
+  if(!currentUser){ document.getElementById('lockError').textContent='Please select a profile first.'; return; }
+  const val=document.getElementById('lockInput').value;
+  if(val===currentUser.password){
+    document.getElementById('lockError').textContent='';
+    sessionStorage.setItem('ep_uid',currentUser.id);
+    openApp();
+  } else {
+    document.getElementById('lockError').textContent='Wrong password. Try again.';
+    document.getElementById('lockInput').value='';
+    document.getElementById('lockInput').focus();
+  }
+}
+function doLogout(){
+  if(!confirm('Switch user?')) return;
+  sessionStorage.removeItem('ep_uid');
+  currentUser=null;
+  document.getElementById('lockScreen').classList.add('show');
+  document.body.classList.add('locked');
+  document.getElementById('lockInput').value='';
+  document.getElementById('lockError').textContent='';
+  document.querySelectorAll('.user-btn').forEach(b=>b.classList.remove('selected'));
+}
+function openApp(){
+  document.getElementById('lockScreen').classList.remove('show');
+  document.body.classList.remove('locked');
+  const av=document.getElementById('topAvatar');
+  av.textContent=currentUser.emoji; av.style.background=currentUser.color;
+  document.getElementById('topName').textContent=currentUser.name;
+  populateYearSelects(); renderDashboard();
+}
+
+// ── VIEWS ──
+function switchView(v,el){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-btn,.mnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('[data-view='+v+']').forEach(b=>b.classList.add('active'));
+  ({dashboard:renderDashboard,students:renderStudents,payments:renderPayments,reports:renderReports})[v]?.();
+}
+function render(){ populateYearSelects(); const a=document.querySelector('.view.active'); if(a) switchView(a.id.replace('view-',''),null); }
+
+// ── YEAR SELECTS ──
+function populateYearSelects(){
+  const yrs=getYears(), cur=String(new Date().getFullYear());
+  ['dashYear','reportYear'].forEach(id=>{ const el=document.getElementById(id); if(!el)return; el.innerHTML=''; yrs.forEach(y=>{ const o=document.createElement('option'); o.value=y;o.textContent=y;if(y===cur)o.selected=true; el.appendChild(o); }); });
+  const fY=document.getElementById('filterYear'); if(fY){ fY.innerHTML='<option value="all">All Years</option>'; yrs.forEach(y=>{ const o=document.createElement('option');o.value=y;o.textContent=y;fY.appendChild(o); }); }
+  const pY=document.getElementById('pYear'); if(pY){ pY.innerHTML=''; yrs.forEach(y=>{ const o=document.createElement('option');o.value=y;o.textContent=y;if(y===cur)o.selected=true;pY.appendChild(o); }); }
+}
+
+// ── DASHBOARD ──
+function renderDashboard(){
+  const yr=document.getElementById('dashYear').value||String(new Date().getFullYear());
+  const yP=payments.filter(p=>p.year===yr);
+  const tot=yP.reduce((s,p)=>s+p.amount,0);
+  const paid=yP.filter(p=>p.status==='paid').reduce((s,p)=>s+p.amount,0);
+  const pend=yP.filter(p=>p.status==='pending'), ovd=yP.filter(p=>p.status==='overdue');
+  const pct=tot>0?Math.round(paid/tot*100):0;
+  document.getElementById('dTotal').textContent=fmt(tot);
+  document.getElementById('dStudents').textContent=[...new Set(yP.map(p=>p.studentId))].length+' students';
+  document.getElementById('dPaid').textContent=fmt(paid);
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=pct+'%';
+  document.getElementById('dPending').textContent=fmt(pend.reduce((s,p)=>s+p.amount,0));
+  document.getElementById('dPendingC').textContent=pend.length+' entries';
+  document.getElementById('dOverdue').textContent=fmt(ovd.reduce((s,p)=>s+p.amount,0));
+  document.getElementById('dOverdueC').textContent=ovd.length+' entries';
+  document.getElementById('dashDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('heatYear').textContent=yr;
+
+  document.getElementById('monthGrid').innerHTML=MONTHS.map((mn,i)=>{
+    const mo=String(i+1).padStart(2,'0'), mP=yP.filter(p=>p.month===mo);
+    const mp=mP.filter(p=>p.status==='paid'), mn2=mP.filter(p=>p.status==='pending'), mo2=mP.filter(p=>p.status==='overdue');
+    const amt=mP.reduce((s,p)=>s+p.amount,0);
+    let cls='month-tile'+(mo2.length?' has-overdue':mn2.length?' has-pending':mp.length?' has-paid':' empty-month');
+    const dots=[...mp.slice(0,5).map(()=>'<div class="mdot paid"></div>'),...mn2.slice(0,5).map(()=>'<div class="mdot pending"></div>'),...mo2.slice(0,5).map(()=>'<div class="mdot overdue"></div>')].join('');
+    return `<div class="${cls}" onclick="filterByMonth('${yr}','${mo}')"><div class="month-name">${mn.slice(0,3)}</div><div class="month-amount">${amt>0?fmt(amt):'—'}</div><div class="month-count">${mP.length?mP.length+' entries':'No entries'}</div><div class="month-dots">${dots}</div></div>`;
+  }).join('');
+
+  const recent=[...payments].sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).slice(0,6);
+  const rl=document.getElementById('recentList');
+  if(!recent.length){ rl.innerHTML='<div class="empty-state" style="padding:32px"><span class="empty-icon">📋</span><h3>No activity yet</h3><p>Add a payment to get started</p></div>'; return; }
+  rl.innerHTML=recent.map(p=>{ const st=students.find(s=>s.id===p.studentId)||{name:'Unknown',subject:''}; const mi=modeInfo(p.mode);
+    return `<div class="recent-item"><div class="recent-avatar" style="background:${avatarColor(st.name)}">${initials(st.name)}</div><div class="recent-info"><div class="recent-name">${st.name}</div><div class="recent-meta">${st.subject?st.subject+' · ':''}${fmtMY(p.year,p.month)}${p.mode?' · '+mi.icon+' '+mi.label:''}${p.addedBy?' · '+p.addedBy:''}</div></div><div class="recent-right"><div class="recent-amt">${fmt(p.amount)}</div><div style="margin-top:4px"><span class="badge ${p.status}">${cap(p.status)}</span></div></div></div>`;
+  }).join('');
+}
+function filterByMonth(yr,mo){ document.getElementById('filterYear').value=yr; document.getElementById('filterMonth').value=mo; document.getElementById('filterStatus').value='all'; document.getElementById('filterMode').value='all'; switchView('payments',null); }
+
+// ── STUDENTS ──
+function renderStudents(){
+  const q=(document.getElementById('studentSearch').value||'').toLowerCase();
+  const list=students.filter(s=>!q||s.name.toLowerCase().includes(q)||(s.subject||'').toLowerCase().includes(q));
+  const grid=document.getElementById('studentGrid'), empty=document.getElementById('studentEmpty');
+  if(!list.length){ grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  grid.innerHTML=list.map(s=>{ const sp=payments.filter(p=>p.studentId===s.id); const pp=sp.filter(p=>p.status==='paid').reduce((a,p)=>a+p.amount,0), pd=sp.filter(p=>p.status!=='paid').reduce((a,p)=>a+p.amount,0);
+    return `<div class="student-card"><div class="sc-top"><div class="sc-avatar" style="background:${avatarColor(s.name)}">${initials(s.name)}</div><div><div class="sc-name">${s.name}</div><div class="sc-subject">${s.subject||'No subject'}</div></div></div>${s.phone?`<div class="sc-phone">📞 ${s.phone}</div>`:''}<div class="sc-stats"><div class="sc-stat"><div class="sc-stat-val">${sp.length}</div><div class="sc-stat-label">Entries</div></div><div class="sc-stat"><div class="sc-stat-val green">${fmt(pp)}</div><div class="sc-stat-label">Paid</div></div><div class="sc-stat"><div class="sc-stat-val amber">${fmt(pd)}</div><div class="sc-stat-label">Due</div></div></div><div class="sc-actions"><button class="sc-btn" onclick="openStudentModal('${s.id}')">✏️ Edit</button><button class="sc-btn" onclick="openPaymentModal(null,'${s.id}')">💳 Add Pay</button><button class="sc-btn danger" onclick="deleteStudent('${s.id}')">🗑️</button></div></div>`;
+  }).join('');
+}
+function openStudentModal(id){ const s=id?students.find(x=>x.id===id):null; document.getElementById('studentModalTitle').textContent=s?'Edit Student':'Add Student'; ['sId','sName','sSubject','sFee','sPhone','sNote'].forEach(k=>document.getElementById(k).value=s?s[k.slice(1).toLowerCase()]||'':''); document.getElementById('sId').value=s?s.id:''; document.getElementById('studentModal').classList.add('open'); setTimeout(()=>document.getElementById('sName').focus(),100); }
+function saveStudent(){
+  const id=document.getElementById('sId').value, name=document.getElementById('sName').value.trim();
+  if(!name){ showToast('⚠️ Name is required'); return; }
+  const data={id:id||uid(),name,subject:document.getElementById('sSubject').value.trim(),fee:parseFloat(document.getElementById('sFee').value)||0,phone:document.getElementById('sPhone').value.trim(),note:document.getElementById('sNote').value.trim(),updatedAt:Date.now()};
+  if(id){ const i=students.findIndex(s=>s.id===id); if(i!==-1) students[i]={...students[i],...data}; } else { data.createdAt=Date.now(); students.push(data); }
+  save(); populateYearSelects(); renderStudents(); closeModal('studentModal'); showToast(id?'✅ Student updated':'✅ Student added');
+}
+function deleteStudent(id){ if(!confirm('Delete this student and all their payments?')) return; students=students.filter(s=>s.id!==id); payments=payments.filter(p=>p.studentId!==id); save(); renderStudents(); showToast('🗑️ Student deleted'); }
+
+// ── PAYMENTS ──
+function renderPayments(){
+  const q=(document.getElementById('paySearch').value||'').toLowerCase();
+  const fY=document.getElementById('filterYear').value, fM=document.getElementById('filterMonth').value, fS=document.getElementById('filterStatus').value, fMo=document.getElementById('filterMode').value;
+  let list=payments.filter(p=>{
+    if(fY!=='all'&&p.year!==fY) return false; if(fM!=='all'&&p.month!==fM) return false; if(fS!=='all'&&p.status!==fS) return false; if(fMo!=='all'&&p.mode!==fMo) return false;
+    if(q){ const st=students.find(s=>s.id===p.studentId); if(!(st?.name||'').toLowerCase().includes(q)&&!(st?.subject||'').toLowerCase().includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const body=document.getElementById('payBody'), empty=document.getElementById('payEmpty');
+  if(!list.length){ body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  body.innerHTML=list.map(p=>{ const st=students.find(s=>s.id===p.studentId)||{name:'Unknown',subject:''}; const mi=modeInfo(p.mode);
+    return `<tr><td><div class="td-student"><div class="td-avatar" style="background:${avatarColor(st.name)}">${initials(st.name)}</div><div><div class="td-name">${st.name}</div><div class="td-sub">${st.subject||'—'}</div></div></div></td><td style="white-space:nowrap;font-size:12px">${fmtMY(p.year,p.month)}</td><td><div class="td-amount">${fmt(p.amount)}</div></td><td><span class="badge ${p.status}">${cap(p.status)}</span></td><td>${p.mode?`<span class="mode-badge ${mi.cls}">${mi.icon} ${mi.label}</span>`:'<span style="color:var(--g400);font-size:12px">—</span>'}</td><td style="font-size:11px;color:var(--g500)">${p.addedBy||'—'}</td><td style="font-size:12px;color:var(--g500);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.note||'—'}</td><td><div class="td-actions"><button class="tbl-btn success" onclick="quickPaid('${p.id}')">${p.status==='paid'?'↩ Undo':'✅ Paid'}</button><button class="tbl-btn" onclick="openPaymentModal('${p.id}')">✏️</button><button class="tbl-btn danger" onclick="delPayment('${p.id}')">🗑️</button></div></td></tr>`;
+  }).join('');
+}
+function selectMode(m){ selMode=m; ['cash','online','banking'].forEach(x=>{ const el=document.getElementById('mode-'+x); el.className='mode-opt'+(x===m?' sel-'+x:''); }); }
+function openPaymentModal(id,preStudId){
+  const sel=document.getElementById('pStudent'); sel.innerHTML='<option value="">Select student…</option>';
+  students.sort((a,b)=>a.name.localeCompare(b.name)).forEach(s=>{ const o=document.createElement('option');o.value=s.id;o.textContent=s.name+(s.subject?' ('+s.subject+')':'');sel.appendChild(o); });
+  const p=id?payments.find(x=>x.id===id):null, cur=new Date();
+  document.getElementById('paymentModalTitle').textContent=p?'Edit Payment':'Add Payment';
+  document.getElementById('pId').value=p?p.id:'';
+  document.getElementById('pStudent').value=p?p.studentId:(preStudId||'');
+  document.getElementById('pYear').value=p?p.year:String(cur.getFullYear());
+  document.getElementById('pMonth').value=p?p.month:String(cur.getMonth()+1).padStart(2,'0');
+  document.getElementById('pAmount').value=p?p.amount:'';
+  document.getElementById('pStatus').value=p?p.status:'pending';
+  document.getElementById('pDate').value=p?p.datePaid||'':'';
+  document.getElementById('pNote').value=p?p.note||'':'';
+  selectMode(p?p.mode||'cash':'cash');
+  if(!p&&preStudId){ const st=students.find(s=>s.id===preStudId); if(st?.fee) document.getElementById('pAmount').value=st.fee; }
+  document.getElementById('paymentModal').classList.add('open');
+}
+function savePayment(){
+  const id=document.getElementById('pId').value, studId=document.getElementById('pStudent').value, amt=parseFloat(document.getElementById('pAmount').value);
+  if(!studId){ showToast('⚠️ Select a student'); return; } if(!amt||amt<=0){ showToast('⚠️ Enter a valid amount'); return; }
+  const data={id:id||uid(),studentId:studId,year:document.getElementById('pYear').value,month:document.getElementById('pMonth').value,amount:amt,status:document.getElementById('pStatus').value,mode:selMode,datePaid:document.getElementById('pDate').value,note:document.getElementById('pNote').value.trim(),addedBy:currentUser?currentUser.name:'Unknown',updatedAt:Date.now()};
+  if(id){ const i=payments.findIndex(p=>p.id===id); if(i!==-1) payments[i]={...payments[i],...data}; showToast('✅ Payment updated'); }
+  else { data.createdAt=Date.now(); payments.unshift(data); showToast('✅ Payment added'); }
+  save(); populateYearSelects(); renderPayments(); closeModal('paymentModal');
+}
+function quickPaid(id){ const p=payments.find(x=>x.id===id); if(!p)return; p.status=p.status==='paid'?'pending':'paid'; p.updatedAt=Date.now(); if(p.status==='paid'&&!p.datePaid)p.datePaid=new Date().toISOString().slice(0,10); save(); renderPayments(); showToast(p.status==='paid'?'✅ Marked paid':'⏳ Marked pending'); }
+function delPayment(id){ if(!confirm('Delete this payment?'))return; payments=payments.filter(p=>p.id!==id); save(); renderPayments(); showToast('🗑️ Deleted'); }
+
+// ── REPORTS ──
+function renderReports(){
+  const yr=document.getElementById('reportYear').value||String(new Date().getFullYear());
+  const yP=payments.filter(p=>p.year===yr), tot=yP.reduce((s,p)=>s+p.amount,0);
+
+  // Month-wise
+  const mxA=Math.max(...MONTHS.map((_,i)=>yP.filter(p=>p.month===String(i+1).padStart(2,'0')).reduce((s,p)=>s+p.amount,0)),1);
+  document.getElementById('monthReport').innerHTML=MONTHS.map((mn,i)=>{ const mo=String(i+1).padStart(2,'0'),mP=yP.filter(p=>p.month===mo),amt=mP.reduce((s,p)=>s+p.amount,0); return `<div class="month-report-row"><div class="mrr-name">${mn.slice(0,3)}</div><div class="mrr-bar-wrap"><div class="mrr-bar-bg"><div class="mrr-bar-fill" style="width:${Math.round(amt/mxA*100)}%"></div></div></div><div class="mrr-amt">${amt>0?fmt(amt):'—'}</div><div class="mrr-pct">${tot>0&&amt>0?Math.round(amt/tot*100)+'%':''}</div></div>`; }).join('');
+
+  // Student-wise
+  const sD=students.map(s=>{ const sp=yP.filter(p=>p.studentId===s.id),paid=sp.filter(p=>p.status==='paid').reduce((a,p)=>a+p.amount,0),total=sp.reduce((a,p)=>a+p.amount,0); return{s,paid,total,count:sp.length}; }).filter(x=>x.count>0).sort((a,b)=>b.total-a.total);
+  document.getElementById('studentReport').innerHTML=!sD.length?'<div class="empty-state" style="padding:32px"><span class="empty-icon">📊</span><h3>No data for this year</h3></div>':sD.map(({s,paid,total})=>`<div class="sr-row"><div class="sr-avatar" style="background:${avatarColor(s.name)}">${initials(s.name)}</div><div><div class="sr-name">${s.name}</div><div class="sr-total">${s.subject||''}</div></div><div style="text-align:right"><div class="sr-paid">${fmt(paid)}</div><div class="sr-total">of ${fmt(total)}</div></div></div>`).join('');
+
+  // Mode breakdown
+  const modes=[{key:'cash',icon:'💵',label:'Cash',bar:'#B7770D'},{key:'online',icon:'📱',label:'Online',bar:'#1A5276'},{key:'banking',icon:'🏦',label:'Banking',bar:'#1E8449'}];
+  const mxM=Math.max(...modes.map(m=>yP.filter(p=>p.mode===m.key).reduce((s,p)=>s+p.amount,0)),1);
+  document.getElementById('modeReport').innerHTML=modes.map(m=>{ const mp=yP.filter(p=>p.mode===m.key),amt=mp.reduce((s,p)=>s+p.amount,0),pct=Math.round(amt/mxM*100); return `<div class="mode-report-row"><div class="mode-icon">${m.icon}</div><div class="mode-info"><div class="mode-name">${m.label}</div><div class="mode-count">${mp.length} payment${mp.length!==1?'s':''}</div><div class="mode-bar-bg"><div class="mode-bar-fill" style="width:${pct}%;background:${m.bar}"></div></div></div><div class="mode-amt">${amt>0?fmt(amt):'—'}</div></div>`; }).join('');
+
+  // Year-wise
+  const aY=getYears().filter(y=>payments.some(p=>p.year===y));
+  document.getElementById('yearReport').innerHTML=!aY.length?'<div class="empty-state" style="padding:32px"><span class="empty-icon">📅</span><h3>No data yet</h3></div>':aY.map(y=>{ const yp=payments.filter(p=>p.year===y),t=yp.reduce((s,p)=>s+p.amount,0),pd=yp.filter(p=>p.status==='paid').reduce((s,p)=>s+p.amount,0),pe=yp.filter(p=>p.status==='pending').reduce((s,p)=>s+p.amount,0),ov=yp.filter(p=>p.status==='overdue').reduce((s,p)=>s+p.amount,0),pc=t>0?Math.round(pd/t*100):0,st=[...new Set(yp.map(p=>p.studentId))].length; return `<div class="yr-row"><div class="yr-year">${y}</div><div class="yr-stats"><div class="yr-stat"><div class="yr-val">${fmt(t)}</div><div class="yr-lbl">Total</div></div><div class="yr-stat"><div class="yr-val green">${fmt(pd)}</div><div class="yr-lbl">Paid</div></div><div class="yr-stat"><div class="yr-val amber">${fmt(pe)}</div><div class="yr-lbl">Pending</div></div><div class="yr-stat"><div class="yr-val" style="color:var(--red)">${fmt(ov)}</div><div class="yr-lbl">Overdue</div></div><div class="yr-stat"><div class="yr-val">${st}</div><div class="yr-lbl">Students</div></div><div class="yr-stat"><div class="yr-val">${pc}%</div><div class="yr-lbl">Collected</div></div></div><div class="yr-prog-wrap"><div class="prog-bg"><div class="prog-fill" style="width:${pc}%"></div></div><div style="font-size:10px;color:var(--g500);margin-top:4px;text-align:right">${pc}% collected</div></div></div>`; }).join('');
+}
+
+// ── EXPORT ──
+function exportCSV(){ if(!payments.length){showToast('⚠️ No payments to export');return;} const rows=[['Student','Subject','Year','Month','Amount','Status','Mode','Date Paid','Added By','Note']]; payments.forEach(p=>{ const st=students.find(s=>s.id===p.studentId)||{name:'Unknown',subject:''}; const mi=modeInfo(p.mode); rows.push([st.name,st.subject||'',p.year,p.month?MONTHS[parseInt(p.month)-1]:'',p.amount,p.status,mi.label,p.datePaid||'',p.addedBy||'',p.note||'']); }); const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n'); const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='edupay_'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); showToast('📥 CSV exported!'); }
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded',()=>{
+  load();
+  buildLockUsers();
+  setTimeout(()=>{
+    document.getElementById('appLoading').style.opacity='0';
+    setTimeout(()=>document.getElementById('appLoading').style.display='none',400);
+    const saved=sessionStorage.getItem('ep_uid');
+    const u=USERS.find(x=>x.id===saved);
+    if(u){ currentUser=u; openApp(); }
+    else { document.getElementById('lockScreen').classList.add('show'); document.body.classList.add('locked'); }
+  },500);
+  // Auto-refresh every 30s (picks up changes from other tabs/devices on same device)
+  setInterval(()=>{ if(!currentUser)return; load(); const a=document.querySelector('.view.active'); if(a)({dashboard:renderDashboard,students:renderStudents,payments:renderPayments,reports:renderReports})[a.id.replace('view-','')]?.(); },30000);
+});
+</script>
+</body>
+</html>
